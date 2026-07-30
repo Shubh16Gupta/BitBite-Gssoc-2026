@@ -22,6 +22,20 @@ import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import bankLoginBg from '../../assets/bankLoginBg.png'
 
+/**
+ * Credentials shown by the "Quick Fill" demo helper.
+ *
+ * These must match an admin that actually exists — seed it with
+ * `npm run seed:admin` using the same SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD.
+ *
+ * Override per-deployment with VITE_DEMO_ADMIN_EMAIL / VITE_DEMO_ADMIN_PASSWORD
+ * so real credentials never have to live in the repository.
+ */
+const DEMO_ADMIN = {
+  email: import.meta.env.VITE_DEMO_ADMIN_EMAIL || 'admin@farmtrust.in',
+  password: import.meta.env.VITE_DEMO_ADMIN_PASSWORD || 'Admin@12345',
+}
+
 export default function AdminLogin() {
   const [formData, setFormData] = useState({
     email: '',
@@ -48,7 +62,7 @@ export default function AdminLogin() {
   }
 
   const handleQuickFill = () => {
-    setFormData({ email: 'admin@farmtrust.in', password: 'Admin@12345' })
+    setFormData({ email: DEMO_ADMIN.email, password: DEMO_ADMIN.password })
     toast.success('Admin credentials filled')
   }
 
@@ -203,8 +217,8 @@ export default function AdminLogin() {
                 </button>
               </div>
               <div className="mt-1 text-xs text-slate-500 space-y-0.5">
-                <p>Email: admin@farmtrust.in</p>
-                <p>Password: Admin@12345</p>
+                <p>Email: {DEMO_ADMIN.email}</p>
+                <p>Password: {DEMO_ADMIN.password}</p>
               </div>
             </div>
 
