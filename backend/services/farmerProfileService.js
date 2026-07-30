@@ -58,6 +58,35 @@ const toDocumentUrl = (value) => {
 };
 
 /**
+ * The supporting documents a complete farmer file needs, in the order the UI
+ * should nudge for them.
+ */
+const REQUIRED_DOCUMENTS = [
+  { key: 'aadhaarFront', field: 'aadhaarFrontImage', label: 'Aadhaar front' },
+  { key: 'aadhaarBack', field: 'aadhaarBackImage', label: 'Aadhaar back' },
+  { key: 'landDocument', field: 'landDocument', label: 'Land ownership document' },
+];
+
+/**
+ * Which supporting documents are still missing.
+ *
+ * Kept separate from `getProfileCompleteness` on purpose: that flag gates the
+ * post-login "finish your profile" redirect, and folding documents into it
+ * would bounce every existing farmer back to the form. This is an advisory
+ * signal the UI surfaces as a warning instead.
+ *
+ * @param {Farmer} farmer
+ * @returns {{ documentsComplete: boolean, missingDocuments: string[] }}
+ */
+const getDocumentStatus = (farmer) => {
+  const missing = REQUIRED_DOCUMENTS.filter((d) => !farmer[d.field]);
+  return {
+    documentsComplete: missing.length === 0,
+    missingDocuments: missing.map((d) => d.label),
+  };
+};
+
+/**
  * Shape a farmer document into a safe, client-facing profile object.
  * Sensitive/auth-only fields (aadhaarHash, etc.) are never included — the
  * Aadhaar number itself is exposed only in its masked form.
@@ -76,6 +105,10 @@ const toProfileView = (farmer) => ({
   // "Verified" here means both sides of the Aadhaar card are on file. It is a
   // document-completeness signal, not a check against the UIDAI registry.
   aadhaarVerified: Boolean(farmer.aadhaarFrontImage && farmer.aadhaarBackImage),
+  landDocument: toDocumentUrl(farmer.landDocument),
+  // Land area is self-declared until a supporting document is uploaded.
+  landVerified: Boolean(farmer.landDocument),
+  ...getDocumentStatus(farmer),
   landArea: farmer.landArea,
   landUnit: farmer.landUnit,
   ownershipType: farmer.ownershipType,
@@ -113,25 +146,28 @@ const updateProfile = (farmerId, data) => {
 };
 
 /**
- * Store Aadhaar document URLs on the farmer. Only the sides actually supplied
- * are written, so uploading a replacement front never clears an existing back.
+ * Store document URLs on the farmer. Only the documents actually supplied are
+ * written, so uploading a replacement front never clears an existing back.
  * @param {string} farmerId
- * @param {{ front?: string, back?: string }} urls
+ * @param {{ front?: string, back?: string, land?: string }} urls
  * @returns {Promise<Farmer|null>}
  */
-const updateAadhaarDocuments = (farmerId, urls) => {
+const updateDocuments = (farmerId, urls) => {
   const update = {};
   if (urls.front) update.aadhaarFrontImage = urls.front;
   if (urls.back) update.aadhaarBackImage = urls.back;
+  if (urls.land) update.landDocument = urls.land;
 
   return Farmer.findByIdAndUpdate(farmerId, update, { new: true, runValidators: true });
 };
 
 module.exports = {
   REQUIRED_PROFILE_FIELDS,
+  REQUIRED_DOCUMENTS,
   getProfileCompleteness,
+  getDocumentStatus,
   toProfileView,
   toDocumentUrl,
   updateProfile,
-  updateAadhaarDocuments,
+  updateDocuments,
 };

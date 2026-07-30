@@ -43,6 +43,29 @@ const listMyLoans = asyncHandler(async (req, res) => {
 });
 
 /**
+ * @route GET /api/farmer/score
+ * @desc  The farmer's own AnnScore — the same snapshot lenders underwrite
+ *        against, so the number a farmer sees matches what a bank sees.
+ */
+const getScore = asyncHandler(async (req, res) => {
+  const snapshot = await loanService.riskSnapshot(req.farmer._id);
+  const s = snapshot.annScoreAtApply;
+  const label =
+    s == null ? 'no analysis yet'
+      : s >= 85 ? 'excellent'
+      : s >= 70 ? 'healthy'
+      : s >= 50 ? 'needs attention'
+      : 'at risk';
+
+  return sendResponse(res, 200, 'Score fetched.', {
+    annScore: s,
+    cropHealth: snapshot.cropHealthAtApply,
+    predictedYield: snapshot.predictedYield,
+    label,
+  });
+});
+
+/**
  * @route GET /api/farmer/activity
  */
 const getActivity = asyncHandler(async (req, res) => {
@@ -90,6 +113,7 @@ module.exports = {
   apply,
   listMyLoans,
   getActivity,
+  getScore,
   listBankLoans,
   approveLoan,
   rejectLoan,

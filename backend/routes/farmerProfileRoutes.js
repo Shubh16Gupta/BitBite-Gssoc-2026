@@ -16,7 +16,7 @@ const {
   getProfileStatus,
   getProfile,
   updateProfile,
-  uploadAadhaarDocuments,
+  uploadDocuments,
 } = require('../controllers/farmerProfileController');
 
 // All profile routes require an authenticated farmer.
@@ -25,15 +25,16 @@ router.use(verifyFarmer);
 // Post-login completeness check (used to trigger the profile-completion redirect).
 router.get('/status', getProfileStatus);
 
-// Aadhaar card photos (streamed to Cloudinary). Declared before '/' so the
+// Supporting documents (streamed to Cloudinary). Declared before '/' so the
 // multipart parser only runs on this route.
 router.put(
   '/documents',
   uploadMemory.fields([
     { name: 'aadhaarFrontImage', maxCount: 1 },
     { name: 'aadhaarBackImage', maxCount: 1 },
+    { name: 'landDocument', maxCount: 1 },
   ]),
-  uploadAadhaarDocuments
+  uploadDocuments
 );
 
 router

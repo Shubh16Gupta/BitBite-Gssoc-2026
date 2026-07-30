@@ -73,9 +73,14 @@ const farmerSchema = new mongoose.Schema(
       default: 'rainfed',
     },
 
-    // Uploaded document paths (relative to /uploads)
+    // Uploaded document URLs (Cloudinary; legacy records hold a bare filename
+    // served from /uploads — see farmerProfileService.toDocumentUrl).
     aadhaarFrontImage: { type: String, default: null },
     aadhaarBackImage: { type: String, default: null },
+    // Proof of the declared land area (title deed, khasra/khatauni, lease deed).
+    // Lenders weigh the declared area heavily, so an unverified holding lowers
+    // confidence in the farmer's AnnScore-backed application.
+    landDocument: { type: String, default: null },
   },
   {
     // Adds createdAt & updatedAt automatically.

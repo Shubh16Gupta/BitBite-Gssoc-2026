@@ -63,32 +63,38 @@ const updateProfile = asyncHandler(async (req, res) => {
 
 /**
  * @route   PUT /api/farmer/profile/documents
- * @desc    Upload/replace the farmer's Aadhaar card photos. Each side is
- *          optional, so the front and back can be added independently; images
- *          are stored on Cloudinary and only their URLs are persisted.
+ * @desc    Upload/replace the farmer's supporting documents — Aadhaar front,
+ *          Aadhaar back, and the land-ownership proof. Every document is
+ *          optional so they can be added one at a time; files are stored on
+ *          Cloudinary and only their URLs are persisted.
  * @access  Private (farmer)
  */
-const uploadAadhaarDocuments = asyncHandler(async (req, res) => {
+const uploadDocuments = asyncHandler(async (req, res) => {
   const files = req.files || {};
   const front = files.aadhaarFrontImage ? files.aadhaarFrontImage[0] : null;
   const back = files.aadhaarBackImage ? files.aadhaarBackImage[0] : null;
+  const land = files.landDocument ? files.landDocument[0] : null;
 
-  if (!front && !back) {
-    throw ApiError.badRequest('Attach an Aadhaar front and/or back image to upload.');
+  if (!front && !back && !land) {
+    throw ApiError.badRequest('Attach at least one document to upload.');
   }
 
-  const urls = await cloudinaryService.uploadDocuments({ front, back });
-  const farmer = await profileService.updateAadhaarDocuments(req.farmer._id, urls);
+  const urls = await cloudinaryService.uploadDocuments({ front, back, land });
+  const farmer = await profileService.updateDocuments(req.farmer._id, urls);
   if (!farmer) {
     throw ApiError.notFound('Farmer account not found.');
   }
 
   const profile = profileService.toProfileView(farmer);
-  return sendResponse(res, 200, 'Aadhaar documents uploaded successfully.', {
+  return sendResponse(res, 200, 'Documents uploaded successfully.', {
     profile,
     aadhaarDocuments: profile.aadhaarDocuments,
     aadhaarVerified: profile.aadhaarVerified,
+    landDocument: profile.landDocument,
+    landVerified: profile.landVerified,
+    documentsComplete: profile.documentsComplete,
+    missingDocuments: profile.missingDocuments,
   });
 });
 
-module.exports = { getProfileStatus, getProfile, updateProfile, uploadAadhaarDocuments };
+module.exports = { getProfileStatus, getProfile, updateProfile, uploadDocuments };

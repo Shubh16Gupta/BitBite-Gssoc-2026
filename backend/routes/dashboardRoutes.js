@@ -15,7 +15,7 @@ const validate = require('../middleware/validate');
 const { verifyFarmer } = require('../middleware/authMiddleware');
 const { fieldIdParamValidator } = require('../validators/dashboardValidator');
 const { getDashboard, getHistory, getGraph } = require('../controllers/dashboardController');
-const { getActivity } = require('../controllers/loanController');
+const { getActivity, getScore } = require('../controllers/loanController');
 
 // All dashboard routes require an authenticated farmer.
 router.use(verifyFarmer);
@@ -26,5 +26,8 @@ router.get('/graph/:fieldId', fieldIdParamValidator, validate, getGraph);
 
 // Recent activity feed (derived from the farmer's own records).
 router.get('/activity', getActivity);
+
+// The farmer's own AnnScore.
+router.get('/score', getScore);
 
 module.exports = router;

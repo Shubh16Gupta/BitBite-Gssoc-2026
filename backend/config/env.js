@@ -153,6 +153,10 @@ const env = {
     // before being handed to the ML service, so a five-photo submission stays
     // cheap to transfer and decode on a small instance.
     maxImageWidth: parseInt(process.env.AI_MAX_IMAGE_WIDTH, 10) || 1280,
+    // How long to wait on GET /health when waking a sleeping instance. Free
+    // hosts can take ~30s to boot a container, so this is deliberately generous
+    // — it is a cheap request and only runs after a cold-start failure.
+    wakeTimeoutMs: parseInt(process.env.AI_SERVICE_WAKE_TIMEOUT_MS, 10) || 90000,
   },
 
   // Market prices via data.gov.in (Agmarknet mandi feed). The default api-key is

@@ -34,9 +34,11 @@ const analyzeCropHealth = async ({ imageUrls }) => {
     };
   }
 
-  try {
+  const base = env.aiService.url.replace(/\/$/, '');
+
+  const postAnalyze = async () => {
     const { data } = await axios.post(
-      `${env.aiService.url.replace(/\/$/, '')}/analyze`,
+      `${base}/analyze`,
       { imageUrls, sampleCount: env.aiService.sampleCount },
       { timeout: env.aiService.timeoutMs }
     );
@@ -51,7 +53,52 @@ const analyzeCropHealth = async ({ imageUrls }) => {
       sampleCount: data.sampleCount || env.aiService.sampleCount,
       images: Array.isArray(data.images) ? data.images : [],
     };
-  } catch (err) {
+  };
+
+  try {
+    return await postAnalyze();
+  } catch (firstErr) {
+    if (firstErr instanceof ApiError && firstErr.statusCode === 400) throw firstErr;
+
+    // A sleeping free-tier instance is the common case: the host answers 502/503
+    // (or the connection times out) while the container spins up, which can take
+    // ~30s. Wake it with a cheap GET /health, then retry the analysis once.
+    if (isColdStart(firstErr)) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `⏳ ML service appears asleep (${firstErr.code || firstErr.response?.status}) — waking it and retrying once.`
+      );
+      try {
+        await axios.get(`${base}/health`, { timeout: env.aiService.wakeTimeoutMs });
+        return await postAnalyze();
+      } catch (retryErr) {
+        return handleFailure(retryErr, base, imageUrls);
+      }
+    }
+
+    return handleFailure(firstErr, base, imageUrls);
+  }
+};
+
+/**
+ * Does this error look like the host turning us away while the instance boots,
+ * rather than a genuine fault in the model?
+ */
+const isColdStart = (err) => {
+  const status = err.response?.status;
+  return (
+    err.code === 'ECONNABORTED' || // our timeout elapsed
+    err.code === 'ECONNRESET' ||
+    err.code === 'ECONNREFUSED' ||
+    status === 502 || // Render's edge while the container starts
+    status === 503 ||
+    status === 504
+  );
+};
+
+/** Log the underlying cause and translate it into an ApiError. */
+const handleFailure = (err, base, imageUrls) => {
+  {
     if (err instanceof ApiError) throw err;
 
     // Log the real cause — without this the operator only ever sees the generic
@@ -59,7 +106,7 @@ const analyzeCropHealth = async ({ imageUrls }) => {
     // rejection by the ML service itself.
     // eslint-disable-next-line no-console
     console.error('💥 Crop-health analysis failed:', {
-      url: `${env.aiService.url.replace(/\/$/, '')}/analyze`,
+      url: `${base}/analyze`,
       code: err.code || null, // ECONNABORTED = timeout, ECONNREFUSED/ENOTFOUND = unreachable
       status: err.response?.status || null,
       detail: err.response?.data?.detail || err.message,
@@ -67,16 +114,16 @@ const analyzeCropHealth = async ({ imageUrls }) => {
       timeoutMs: env.aiService.timeoutMs,
     });
 
-    // A timeout on a sleeping free-tier instance is worth calling out, since the
-    // retry usually succeeds once the service is awake.
-    if (err.code === 'ECONNABORTED') {
+    // Still cold after a wake attempt — tell the farmer to retry rather than
+    // implying the model itself is broken.
+    if (isColdStart(err)) {
       throw new ApiError(
-        504,
-        'Crop-health analysis timed out while the service was waking up. Please try again in a minute.'
+        503,
+        'Crop-health service is starting up. Please try again in about a minute.'
       );
     }
     throw new ApiError(502, 'Crop-health analysis service is unavailable. Please try again later.');
   }
 };
 
-module.exports = { analyzeCropHealth };
+module.exports = { analyzeCropHealth, isColdStart };
