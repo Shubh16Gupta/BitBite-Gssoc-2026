@@ -1,0 +1,92 @@
+# Render blueprint — deploys the API and the crop-health ML service together.
+#
+# Usage: Render Dashboard -> New -> Blueprint -> pick this repo. Values marked
+# `sync: false` are NOT stored in git; Render prompts for them on first deploy.
+#
+# Deploy order note: the API needs AI_SERVICE_URL pointing at the ML service.
+# Render cannot compose "https://" + host in a blueprint, so set that value by
+# hand once the ML service is live (its URL is shown in the dashboard).
+services:
+  # --- Crop-health inference (FastAPI + Pillow/NumPy) ---
+  - type: web
+    name: anndata-ml
+    runtime: python
+    rootDir: ml-service
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      # Random patches sampled per image (see app/sampler.py).
+      - key: SAMPLE_COUNT
+        value: 10
+
+  # --- FarmTrust API (Express + MongoDB) ---
+  - type: web
+    name: anndata-api
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 20.11.1
+      - key: NODE_ENV
+        value: production
+
+      # Generated once by Render and kept secret — never commit a real secret.
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+
+      # MongoDB Atlas connection string (mongodb+srv://...).
+      - key: MONGO_URI
+        sync: false
+
+      # Comma-separated allowlist. Set to your Vercel domain once the frontend
+      # is deployed — leaving it as "*" in production is not recommended.
+      - key: CORS_ORIGIN
+        sync: false
+
+      # This service's own public URL, used to build /uploads links.
+      - key: PUBLIC_BASE_URL
+        sync: false
+
+      # Cloudinary — required in production. Without it images are written to
+      # Render's ephemeral disk and vanish on every redeploy.
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: CLOUDINARY_UPLOAD_FOLDER
+        value: farmtrust/weekly-analysis
+      - key: CLOUDINARY_DOCUMENTS_FOLDER
+        value: farmtrust/farmer-documents
+
+      # ML service URL, e.g. https://anndata-ml.onrender.com
+      - key: AI_SERVICE_URL
+        sync: false
+      # Free instances sleep when idle and can take ~50s to wake, so the
+      # default 20s timeout would fail the first analysis after a quiet spell.
+      - key: AI_SERVICE_TIMEOUT_MS
+        value: 60000
+
+      # OTP delivery. Demo mode returns the code in the API response for the
+      # client to autofill — no SMS gateway needed. Set to "false" and add a
+      # gateway key (FAST2SMS_API_KEY / MSG91_* / TWILIO_*) for real SMS.
+      - key: OTP_DEMO_MODE
+        value: "true"
+      - key: OTP_EXPIRY_MINUTES
+        value: 5
+
+      - key: RATE_LIMIT_WINDOW_MINUTES
+        value: 15
+      - key: RATE_LIMIT_MAX
+        value: 100
