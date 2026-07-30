@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   CheckCircle,
   BadgeCheck,
+  AlertTriangle,
   Edit,
   XCircle,
   Camera,
@@ -36,10 +37,18 @@ const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s)
 const ALLOWED_DOC_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 const MAX_DOC_BYTES = 5 * 1024 * 1024
 
-// The two Aadhaar sides the backend stores, keyed by their upload field name.
-const AADHAAR_DOCS = [
-  { key: 'front', field: 'aadhaarFrontImage', label: 'Aadhaar Front' },
-  { key: 'back', field: 'aadhaarBackImage', label: 'Aadhaar Back' },
+// Supporting documents the backend stores, keyed by their upload field name.
+// `from` says where the URL lives on the profile payload.
+const DOCUMENTS = [
+  { key: 'front', field: 'aadhaarFrontImage', label: 'Aadhaar Front', from: 'aadhaar' },
+  { key: 'back', field: 'aadhaarBackImage', label: 'Aadhaar Back', from: 'aadhaar' },
+  {
+    key: 'land',
+    field: 'landDocument',
+    label: 'Land Document',
+    from: 'land',
+    hint: 'Title deed, khasra/khatauni or lease deed — proves your declared land area.',
+  },
 ]
 
 export default function FarmerProfile() {
@@ -67,12 +76,26 @@ export default function FarmerProfile() {
     // Cloudinary URLs of the Aadhaar card photos, as returned by the backend.
     aadhaarDocuments: { front: null, back: null },
     aadhaarVerified: false,
+    landDocument: null,
+    landVerified: false,
+    documentsComplete: true, // assume complete until the profile loads
+    missingDocuments: [],
+    createdAt: null,
     farmingExperience: '',
     annualIncome: '',
     bankAccount: '',
     ifscCode: '',
     preferredLanguage: 'Hindi'
   })
+  // The farmer's real AnnScore — the same figure lenders underwrite against.
+  const [score, setScore] = useState({ annScore: null, label: null, loading: true })
+
+  useEffect(() => {
+    farmerService
+      .getScore()
+      .then((s) => setScore({ annScore: s.annScore, label: s.label, loading: false }))
+      .catch(() => setScore({ annScore: null, label: null, loading: false }))
+  }, [])
 
   useEffect(() => {
     ;(async () => {
@@ -96,6 +119,11 @@ export default function FarmerProfile() {
           aadhaar: p.aadhaarMasked || '',
           aadhaarDocuments: p.aadhaarDocuments || { front: null, back: null },
           aadhaarVerified: Boolean(p.aadhaarVerified),
+          landDocument: p.landDocument || null,
+          landVerified: Boolean(p.landVerified),
+          documentsComplete: p.documentsComplete !== false,
+          missingDocuments: p.missingDocuments || [],
+          createdAt: p.createdAt || null,
         }))
       } catch {
         // Fall back to the stored session basics.
@@ -138,11 +166,15 @@ export default function FarmerProfile() {
 
     setUploadingDoc(doc.key)
     try {
-      const res = await farmerService.uploadAadhaarDocuments({ [doc.field]: file })
+      const res = await farmerService.uploadDocuments({ [doc.field]: file })
       setProfile((prev) => ({
         ...prev,
         aadhaarDocuments: res.aadhaarDocuments,
         aadhaarVerified: res.aadhaarVerified,
+        landDocument: res.landDocument ?? prev.landDocument,
+        landVerified: Boolean(res.landVerified),
+        documentsComplete: res.documentsComplete !== false,
+        missingDocuments: res.missingDocuments || [],
       }))
       toast.success(`${doc.label} uploaded successfully!`)
     } catch (error) {
@@ -301,12 +333,29 @@ export default function FarmerProfile() {
             <h4 className="text-sm font-semibold text-slate-700 mb-3">Quick Stats</h4>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-500">KrishiScore</span>
-                <span className="text-lg font-bold text-emerald-600">682</span>
+                <span className="text-sm text-slate-500">AnnScore</span>
+                {score.loading ? (
+                  <span className="text-sm text-slate-400">…</span>
+                ) : score.annScore == null ? (
+                  <span className="text-sm text-slate-400">no analysis yet</span>
+                ) : (
+                  <span className="text-lg font-bold text-emerald-600">
+                    {score.annScore}
+                    <span className="text-xs font-medium text-slate-400"> / 100</span>
+                  </span>
+                )}
               </div>
+              {score.label && score.annScore != null && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-500">Rating</span>
+                  <span className="text-sm font-medium text-slate-700 capitalize">{score.label}</span>
+                </div>
+              )}
               <div className="flex items-center justify-between">
                 <span className="text-sm text-slate-500">Member Since</span>
-                <span className="text-sm font-medium text-slate-700">2026</span>
+                <span className="text-sm font-medium text-slate-700">
+                  {profile.createdAt ? new Date(profile.createdAt).getFullYear() : '—'}
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-slate-500">Status</span>
@@ -542,14 +591,14 @@ export default function FarmerProfile() {
             </div>
           </div>
 
-          {/* Aadhaar documents */}
+          {/* Verification documents */}
           <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 border border-white/50 shadow-sm">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
                 <FileText className="h-4 w-4 text-emerald-600" />
-                Aadhaar Documents
+                Verification Documents
               </h4>
-              {profile.aadhaarVerified ? (
+              {profile.documentsComplete ? (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
                   <BadgeCheck className="h-3.5 w-3.5" />
                   Verified
@@ -557,14 +606,31 @@ export default function FarmerProfile() {
               ) : (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
                   <Clock className="h-3.5 w-3.5" />
-                  Pending — upload both sides
+                  {profile.missingDocuments.length} pending
                 </span>
               )}
             </div>
 
+            {/* Incomplete-profile warning: an unverified holding is the single
+                biggest drag on how a lender reads the AnnScore. */}
+            {!profile.documentsComplete && (
+              <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-amber-900">Your profile is incomplete</p>
+                  <p className="text-xs text-amber-700 mt-0.5">
+                    Missing: {profile.missingDocuments.join(', ')}. Unverified details lower the
+                    confidence lenders place in your AnnScore, which can reduce loan and insurance
+                    offers. Upload {profile.missingDocuments.length > 1 ? 'them' : 'it'} below.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="grid md:grid-cols-2 gap-4">
-              {AADHAAR_DOCS.map((doc) => {
-                const url = profile.aadhaarDocuments?.[doc.key]
+              {DOCUMENTS.map((doc) => {
+                const url =
+                  doc.from === 'land' ? profile.landDocument : profile.aadhaarDocuments?.[doc.key]
                 const isUploading = uploadingDoc === doc.key
                 return (
                   <div key={doc.key} className="border border-slate-200/50 rounded-xl p-4">
@@ -576,12 +642,13 @@ export default function FarmerProfile() {
                           Uploaded
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-xs text-slate-400">
+                        <span className="inline-flex items-center gap-1 text-xs text-amber-600">
                           <XCircle className="h-3.5 w-3.5" />
                           Not uploaded
                         </span>
                       )}
                     </div>
+                    {doc.hint && <p className="mt-1 text-xs text-slate-400">{doc.hint}</p>}
 
                     {url && (
                       <a href={url} target="_blank" rel="noopener noreferrer" className="mt-3 block group">

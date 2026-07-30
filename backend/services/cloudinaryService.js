@@ -33,6 +33,15 @@ const uploadBuffer = (buffer, folder) =>
       { folder, resource_type: 'image' },
       (error, result) => {
         if (error) {
+          // Surface the real reason in the logs — the client message is
+          // deliberately generic, but an operator needs to tell a bad API
+          // secret from a rejected file or a network fault.
+          // eslint-disable-next-line no-console
+          console.error('💥 Cloudinary upload failed:', {
+            folder,
+            message: error.message,
+            http_code: error.http_code || null,
+          });
           return reject(ApiError.badRequest('Image upload failed. Please try again.'));
         }
         return resolve({ url: result.secure_url, publicId: result.public_id });

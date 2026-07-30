@@ -7,17 +7,22 @@ export const farmerService = {
   getProfileStatus: () => api.get('/farmer/profile/status').then(unwrap),
   updateProfile: (payload) => api.put('/farmer/profile', payload).then(unwrap),
 
-  // Aadhaar card photos -> Cloudinary. Pass either or both sides.
-  uploadAadhaarDocuments: ({ aadhaarFrontImage, aadhaarBackImage }) => {
+  // Supporting documents -> Cloudinary. Pass any subset; omitted ones are left
+  // untouched server-side.
+  uploadDocuments: ({ aadhaarFrontImage, aadhaarBackImage, landDocument }) => {
     const formData = new FormData()
     if (aadhaarFrontImage) formData.append('aadhaarFrontImage', aadhaarFrontImage)
     if (aadhaarBackImage) formData.append('aadhaarBackImage', aadhaarBackImage)
+    if (landDocument) formData.append('landDocument', landDocument)
     return api
       .put('/farmer/profile/documents', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
-      .then(unwrap) // { profile, aadhaarDocuments, aadhaarVerified }
+      .then(unwrap) // { profile, aadhaarDocuments, aadhaarVerified, landVerified, ... }
   },
+
+  // The farmer's own AnnScore — same snapshot banks underwrite against.
+  getScore: () => api.get('/farmer/score').then(unwrap), // { annScore, cropHealth, label }
 
   // --- Fields ---
   getFields: () => api.get('/farmer/fields').then((r) => unwrap(r).fields),
