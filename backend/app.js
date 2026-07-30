@@ -17,6 +17,12 @@ const sendResponse = require('./utils/ApiResponse');
 
 const app = express();
 
+// --- Reverse proxy ---
+// Behind a managed host the client IP arrives in X-Forwarded-For. Declaring how
+// many proxy hops to trust lets req.ip resolve to the real caller, which the
+// rate limiter keys on. Set before any middleware that reads req.ip.
+app.set('trust proxy', env.trustProxy);
+
 // --- Security headers ---
 app.use(helmet());
 

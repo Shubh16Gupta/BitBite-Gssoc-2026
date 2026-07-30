@@ -59,6 +59,25 @@ const env = {
 
   corsOrigin: process.env.CORS_ORIGIN || '*',
 
+  // Number of reverse proxies in front of this app.
+  //
+  // Managed hosts (Render, Railway, Fly, Heroku) terminate TLS at their own
+  // proxy and pass the client IP in X-Forwarded-For. Express must be told to
+  // trust that header, or express-rate-limit cannot identify callers and
+  // throws ERR_ERL_UNEXPECTED_X_FORWARDED_FOR.
+  //
+  // This is a hop COUNT, not `true`. Trusting every hop would let a client
+  // spoof X-Forwarded-For and evade the rate limiter entirely.
+  trustProxy: (() => {
+    const raw = process.env.TRUST_PROXY;
+    if (raw !== undefined) {
+      const n = parseInt(raw, 10);
+      return Number.isFinite(n) ? n : false;
+    }
+    // Default: one proxy hop in production (Render), none locally.
+    return (process.env.NODE_ENV || 'development') === 'production' ? 1 : false;
+  })(),
+
   rateLimitWindowMinutes: parseInt(process.env.RATE_LIMIT_WINDOW_MINUTES, 10) || 15,
   rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX, 10) || 100,
 
