@@ -7,8 +7,6 @@ import {
   ArrowRight, 
   Sprout, 
   Shield,
-  Eye,
-  EyeOff,
   Lock,
   CheckCircle,
   Sparkles,
@@ -24,7 +22,6 @@ import { getErrorMessage } from '../../services/api'
 
 export default function Login() {
   const [loginType, setLoginType] = useState('phone')
-  const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     identifier: '',
@@ -44,8 +41,14 @@ export default function Login() {
         return
       }
       const res = await authService.sendOtp(phone)
-      toast.success(res?.note ? 'OTP generated — check the backend console.' : 'OTP sent to your phone!')
-      navigate('/verify-otp', { state: { phone } })
+      if (res?.otp) {
+        // Demo mode: no SMS gateway, so the code comes back in the response.
+        // Show it prominently and carry it over to be autofilled.
+        toast.success(`Demo OTP: ${res.otp}`, { duration: 12000, icon: '🔐' })
+      } else {
+        toast.success(res?.note ? 'OTP generated — check the backend console.' : 'OTP sent to your phone!')
+      }
+      navigate('/verify-otp', { state: { phone, otp: res?.otp } })
     } catch (error) {
       toast.error(getErrorMessage(error))
     } finally {
@@ -227,7 +230,7 @@ export default function Login() {
               </div>
               <div className="mt-1 text-xs text-slate-500 space-y-0.5">
                 <p>{loginType === 'phone' ? 'Phone: 9876543210' : 'Email: farmer@example.com'}</p>
-                <p>Password: farmer123</p>
+                <p>OTP is shown on screen — no SMS needed.</p>
               </div>
             </div>
 
@@ -298,31 +301,17 @@ export default function Login() {
                 </div>
               </motion.div>
 
-              <motion.div variants={itemVariants} className="space-y-1">
-                <label className="block text-sm font-medium text-slate-700">
-                  Password
-                </label>
-                <div className="relative group">
-                  <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                  <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      className="w-full pl-11 pr-12 py-3 bg-white/60 backdrop-blur-sm border border-slate-200/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-transparent transition-all duration-300 text-slate-800 placeholder-slate-400"
-                      placeholder="Enter password"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                    >
-                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </button>
-                  </div>
-                </div>
+              {/* No password field: farmer sign-in is OTP-only. It used to be
+                  rendered as `required`, which silently blocked the form from
+                  ever submitting since there is no password to type. */}
+              <motion.div
+                variants={itemVariants}
+                className="flex items-start gap-2 rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2.5"
+              >
+                <Lock className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-emerald-800">
+                  No password needed — we&apos;ll verify you with a one-time code.
+                </p>
               </motion.div>
 
               <motion.div variants={itemVariants} className="pt-2">

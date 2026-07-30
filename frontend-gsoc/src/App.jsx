@@ -53,6 +53,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     // Redirect to appropriate dashboard based on role
     if (user.role === "farmer") return <Navigate to="/farmer" replace />;
     if (user.role === "bank") return <Navigate to="/bank" replace />;
+    if (user.role === "insurer") return <Navigate to="/insurer" replace />;
     if (user.role === "admin") return <Navigate to="/admin" replace />;
     return <Navigate to="/" replace />;
   }

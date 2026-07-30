@@ -15,8 +15,11 @@ const MAX_ATTEMPTS = 5;
  * Create and dispatch a fresh OTP for a phone number.
  * Any previous OTPs for the same phone are removed so only one is ever live.
  *
+ * In demo mode no SMS is sent and the plaintext code is handed back to the
+ * caller so it can be shown/autofilled in the UI (see env.otpDemoMode).
+ *
  * @param {string} phone
- * @returns {Promise<{ mock: boolean, expiresAt: Date }>}
+ * @returns {Promise<{ mock: boolean, demo: boolean, expiresAt: Date, code?: string }>}
  */
 const createAndSendOtp = async (phone) => {
   // Invalidate previous codes for this number.
@@ -28,8 +31,13 @@ const createAndSendOtp = async (phone) => {
   // The pre-save hook hashes `otp` before it hits the database.
   await Otp.create({ phone, otp: code, expiresAt });
 
+  // Demo mode: skip the gateway entirely and return the code to the caller.
+  if (env.otpDemoMode) {
+    return { mock: false, demo: true, expiresAt, code };
+  }
+
   const { mock } = await sendOtpSms(phone, code);
-  return { mock, expiresAt };
+  return { mock, demo: false, expiresAt };
 };
 
 /**

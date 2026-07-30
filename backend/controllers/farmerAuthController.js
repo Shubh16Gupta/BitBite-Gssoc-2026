@@ -39,9 +39,19 @@ const buildFarmerAuthPayload = (farmer) => {
 const sendOtp = asyncHandler(async (req, res) => {
   const { phone } = req.body;
 
-  const { mock, expiresAt } = await createAndSendOtp(phone);
+  const { mock, demo, expiresAt, code } = await createAndSendOtp(phone);
 
-  // In non-production mock mode we surface a hint so testers know where to look.
+  // Demo mode returns the code so the client can display and autofill it —
+  // there is no SMS gateway to deliver it to. See env.otpDemoMode.
+  if (demo) {
+    return sendResponse(res, 200, 'OTP generated. Autofilled for the demo.', {
+      phone,
+      expiresAt,
+      otp: code,
+      demoMode: true,
+    });
+  }
+
   const message = mock
     ? 'OTP generated (mock mode — check server console).'
     : 'OTP sent successfully.';
@@ -49,6 +59,7 @@ const sendOtp = asyncHandler(async (req, res) => {
   return sendResponse(res, 200, message, {
     phone,
     expiresAt,
+    demoMode: false,
     // Only expose the dev hint outside production.
     ...(env.nodeEnv !== 'production' ? { note: 'Mock OTP is logged to the server console.' } : {}),
   });

@@ -6,13 +6,26 @@ import { authService } from '../../services/authService'
 import { getErrorMessage } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
 
+/** Spread a 6-digit code across the six input boxes. */
+const toDigits = (code) =>
+  String(code || '')
+    .padEnd(6, ' ')
+    .slice(0, 6)
+    .split('')
+    .map((c) => (/\d/.test(c) ? c : ''))
+
 export default function OTPVerification() {
-  const [otp, setOtp] = useState(['', '', '', '', '', ''])
+  const location = useLocation()
+  // In demo mode the code travels here from the login screen and is prefilled,
+  // so there is nothing to type and no SMS to wait for.
+  const [otp, setOtp] = useState(() =>
+    location.state?.otp ? toDigits(location.state.otp) : ['', '', '', '', '', '']
+  )
+  const [demoOtp, setDemoOtp] = useState(location.state?.otp || null)
   const [timer, setTimer] = useState(30)
   const [canResend, setCanResend] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const navigate = useNavigate()
-  const location = useLocation()
   const { setSession } = useAuth()
   const phone = location.state?.phone || ''
 
@@ -80,10 +93,17 @@ export default function OTPVerification() {
   const handleResend = async () => {
     if (!canResend) return
     try {
-      await authService.sendOtp(phone)
+      const res = await authService.sendOtp(phone)
       setTimer(30)
       setCanResend(false)
-      toast.success('OTP sent again!')
+      if (res?.otp) {
+        // Demo mode — refill the boxes with the new code.
+        setOtp(toDigits(res.otp))
+        setDemoOtp(res.otp)
+        toast.success(`Demo OTP: ${res.otp}`, { duration: 12000, icon: '🔐' })
+      } else {
+        toast.success('OTP sent again!')
+      }
     } catch (error) {
       toast.error(getErrorMessage(error))
     }
@@ -97,9 +117,21 @@ export default function OTPVerification() {
             <Shield className="h-12 w-12 text-primary-600" />
           </div>
           <h2 className="mt-4 text-2xl font-extrabold text-secondary-900">OTP Verification</h2>
-          <p className="mt-2 text-sm text-secondary-600">
-            We've sent a 6-digit OTP to {phone || 'your phone'} (check the backend console in mock mode)
-          </p>
+          {demoOtp ? (
+            <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+              <p className="text-sm text-emerald-800">
+                Demo mode — code for {phone} is{' '}
+                <span className="font-bold tracking-[0.2em]">{demoOtp}</span>
+              </p>
+              <p className="mt-0.5 text-xs text-emerald-600">
+                Already filled in below. Just press Verify.
+              </p>
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-secondary-600">
+              We've sent a 6-digit OTP to {phone || 'your phone'}
+            </p>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="mt-8">

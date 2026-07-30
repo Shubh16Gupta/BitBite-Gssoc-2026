@@ -32,6 +32,31 @@ const env = {
 
   otpExpiryMinutes: parseInt(process.env.OTP_EXPIRY_MINUTES, 10) || 5,
 
+  // Demo OTP mode.
+  //
+  // With no SMS gateway configured there is nowhere to deliver a code, so the
+  // API returns it in the response and the client autofills it. That keeps the
+  // login flow demonstrable (hackathon/judging) without an SMS account.
+  //
+  // Default is inferred: demo when no gateway credentials exist, real SMS as
+  // soon as any are added. OTP_DEMO_MODE=true/false overrides either way.
+  //
+  // SECURITY: while on, anyone who can call /send-otp receives that number's
+  // login code — it is a demo affordance, not a production auth flow.
+  otpDemoMode: (() => {
+    const smsConfigured = Boolean(
+      process.env.FAST2SMS_API_KEY ||
+        (process.env.MSG91_AUTH_KEY && process.env.MSG91_TEMPLATE_ID) ||
+        (process.env.TWILIO_ACCOUNT_SID &&
+          process.env.TWILIO_AUTH_TOKEN &&
+          process.env.TWILIO_PHONE_NUMBER)
+    );
+    if (process.env.OTP_DEMO_MODE !== undefined) {
+      return process.env.OTP_DEMO_MODE === 'true';
+    }
+    return !smsConfigured;
+  })(),
+
   corsOrigin: process.env.CORS_ORIGIN || '*',
 
   rateLimitWindowMinutes: parseInt(process.env.RATE_LIMIT_WINDOW_MINUTES, 10) || 15,
@@ -41,6 +66,26 @@ const env = {
     accountSid: process.env.TWILIO_ACCOUNT_SID || '',
     authToken: process.env.TWILIO_AUTH_TOKEN || '',
     phoneNumber: process.env.TWILIO_PHONE_NUMBER || '',
+  },
+
+  // OTP delivery. `provider` is one of auto | fast2sms | msg91 | twilio | mock;
+  // `auto` picks whichever credentials are present. In production the service
+  // refuses to fall back to mock, so a missing key fails loudly instead of
+  // leaving farmers waiting for a code that was only logged to the console.
+  sms: {
+    provider: (process.env.SMS_PROVIDER || 'auto').toLowerCase(),
+    countryCode: process.env.SMS_COUNTRY_CODE || '+91',
+    timeoutMs: parseInt(process.env.SMS_TIMEOUT_MS, 10) || 10000,
+    fast2sms: {
+      apiKey: process.env.FAST2SMS_API_KEY || '',
+      baseUrl: process.env.FAST2SMS_API_URL || 'https://www.fast2sms.com/dev/bulkV2',
+    },
+    msg91: {
+      authKey: process.env.MSG91_AUTH_KEY || '',
+      templateId: process.env.MSG91_TEMPLATE_ID || '',
+      senderId: process.env.MSG91_SENDER_ID || '',
+      baseUrl: process.env.MSG91_API_URL || 'https://control.msg91.com/api/v5/otp',
+    },
   },
 
   bcryptSaltRounds: parseInt(process.env.BCRYPT_SALT_ROUNDS, 10) || 10,
