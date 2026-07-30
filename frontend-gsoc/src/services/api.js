@@ -47,10 +47,25 @@ api.interceptors.response.use(
 // The backend wraps every response as { success, message, data }.
 export const unwrap = (response) => response.data.data
 
-export const getErrorMessage = (error) =>
-  error?.response?.data?.message ||
-  error?.response?.data?.errors?.[0]?.message ||
-  error?.message ||
-  'Something went wrong.'
+/**
+ * Build a human-readable message from an API error.
+ *
+ * The backend answers a failed validation with a generic "Validation failed"
+ * plus a per-field `errors` array. Showing only the top-level message tells the
+ * user nothing actionable, so field errors are folded into the text.
+ */
+export const getErrorMessage = (error) => {
+  const data = error?.response?.data
+  const fieldErrors = Array.isArray(data?.errors) ? data.errors : []
+
+  if (fieldErrors.length > 0) {
+    const details = fieldErrors
+      .map((e) => (e.field ? `${e.field}: ${e.message}` : e.message))
+      .filter(Boolean)
+    if (details.length > 0) return details.join('\n')
+  }
+
+  return data?.message || error?.message || 'Something went wrong.'
+}
 
 export default api

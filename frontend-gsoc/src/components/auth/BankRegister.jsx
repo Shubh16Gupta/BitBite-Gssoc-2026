@@ -76,6 +76,17 @@ export default function BankRegister() {
       toast.error('Password must be 8+ chars with an uppercase, lowercase and a number.')
       return
     }
+    // Mirror the backend's IFSC rule so the user is told before a round-trip.
+    if (!/^[A-Za-z]{4}0[A-Za-z0-9]{6}$/.test(formData.ifsc.trim())) {
+      toast.error('IFSC must be 4 letters, then 0, then 6 characters — e.g. HDFC0001234.')
+      return
+    }
+    // express-validator's isEmail is stricter than the browser's, which accepts
+    // single-character TLDs like "bank@official.c".
+    if (!/^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/.test(formData.email.trim())) {
+      toast.error('Enter a valid email address, e.g. bank@official.com')
+      return
+    }
 
     setIsLoading(true)
     try {
@@ -328,7 +339,12 @@ export default function BankRegister() {
                     value={formData.ifsc}
                     onChange={handleChange}
                     maxLength={11}
+                    pattern="[A-Za-z]{4}0[A-Za-z0-9]{6}"
+                    title="11 characters: 4 letters, then 0, then 6 letters/digits — e.g. HDFC0001234"
                   />
+                  <p className="text-xs text-slate-500">
+                    4 letters + 0 + 6 characters. This is the branch IFSC, not the RBI number.
+                  </p>
                 </motion.div>
               </div>
 

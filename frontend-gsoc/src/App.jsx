@@ -74,7 +74,8 @@ function App() {
 
   return (
     <>
-      <Toaster position="top-right" />
+      {/* pre-line so multi-field validation errors render on separate lines */}
+      <Toaster position="top-right" toastOptions={{ style: { whiteSpace: 'pre-line' } }} />
       <Navbar />
       <Routes>
         {/* Public Routes */}
