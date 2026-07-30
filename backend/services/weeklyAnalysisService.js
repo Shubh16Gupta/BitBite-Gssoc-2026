@@ -49,7 +49,9 @@ const createWeeklyAnalysis = async ({ field, farmerId, weekNumber, files }) => {
 
   // 4. Run crop-health inference over the uploaded images (10 random patches
   //    per image, scored and averaged into a field crop-health score).
-  const cropResult = await aiService.analyzeCropHealth({ imageUrls });
+  const cropResult = await aiService.analyzeCropHealth({
+    imageUrls: imageUrls.map(cloudinaryService.toAnalysisUrl),
+  });
 
   // 5. Blend the crop-health score with weather favorability -> final annScore.
   const score = scoreService.composeAnnScore(cropResult.cropHealthScore, weather);

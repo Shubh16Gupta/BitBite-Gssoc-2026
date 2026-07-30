@@ -149,6 +149,10 @@ const env = {
     mockScore: parseInt(process.env.AI_SERVICE_MOCK_SCORE, 10) || 87,
     // Random patches sampled per image by the ML service.
     sampleCount: parseInt(process.env.AI_SAMPLE_COUNT, 10) || 10,
+    // Images are downscaled to at most this width (via a Cloudinary transform)
+    // before being handed to the ML service, so a five-photo submission stays
+    // cheap to transfer and decode on a small instance.
+    maxImageWidth: parseInt(process.env.AI_MAX_IMAGE_WIDTH, 10) || 1280,
   },
 
   // Market prices via data.gov.in (Agmarknet mandi feed). The default api-key is

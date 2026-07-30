@@ -120,8 +120,12 @@ const submitPhase = async ({ cycle, field, farmerId, phaseNumber, files }) => {
   // 1. Upload photos.
   const imageUrls = await cloudinaryService.uploadImages(files);
 
-  // 2. Crop-health AI.
-  const cropResult = await aiService.analyzeCropHealth({ imageUrls });
+  // 2. Crop-health AI. Full-resolution URLs are what we persist; the model is
+  //    given bounded derivatives so a phase submission stays within the ML
+  //    service's time and memory budget.
+  const cropResult = await aiService.analyzeCropHealth({
+    imageUrls: imageUrls.map(cloudinaryService.toAnalysisUrl),
+  });
   const cropHealthScore = cropResult.cropHealthScore;
 
   // 2b. Near-duplicate check against other farmers' photos (perceptual hash).

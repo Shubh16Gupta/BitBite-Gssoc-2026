@@ -53,6 +53,28 @@ const analyzeCropHealth = async ({ imageUrls }) => {
     };
   } catch (err) {
     if (err instanceof ApiError) throw err;
+
+    // Log the real cause — without this the operator only ever sees the generic
+    // 502 and cannot tell a cold-start timeout from an unreachable host or a
+    // rejection by the ML service itself.
+    // eslint-disable-next-line no-console
+    console.error('💥 Crop-health analysis failed:', {
+      url: `${env.aiService.url.replace(/\/$/, '')}/analyze`,
+      code: err.code || null, // ECONNABORTED = timeout, ECONNREFUSED/ENOTFOUND = unreachable
+      status: err.response?.status || null,
+      detail: err.response?.data?.detail || err.message,
+      imageCount: imageUrls.length,
+      timeoutMs: env.aiService.timeoutMs,
+    });
+
+    // A timeout on a sleeping free-tier instance is worth calling out, since the
+    // retry usually succeeds once the service is awake.
+    if (err.code === 'ECONNABORTED') {
+      throw new ApiError(
+        504,
+        'Crop-health analysis timed out while the service was waking up. Please try again in a minute.'
+      );
+    }
     throw new ApiError(502, 'Crop-health analysis service is unavailable. Please try again later.');
   }
 };

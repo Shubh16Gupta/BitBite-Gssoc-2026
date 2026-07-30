@@ -81,4 +81,28 @@ const uploadDocuments = async (filesByKey) => {
   return keys.reduce((acc, key, i) => ({ ...acc, [key]: urls[i] }), {});
 };
 
-module.exports = { uploadImages, uploadBuffer, uploadDocuments };
+/**
+ * Rewrite a Cloudinary URL to a bounded-size derivative for analysis.
+ *
+ * Phone photos are often 4000px+ and several MB each. The ML service downloads
+ * every image and decodes it into a NumPy array, so a five-photo submission can
+ * mean tens of MB of transfer and hundreds of MB of RAM — enough to time out or
+ * exhaust a small instance. Cloudinary generates a capped copy on the fly, which
+ * cuts both dramatically.
+ *
+ * The crop-health score is a colour-ratio index (VARI) averaged over patches, so
+ * downscaling leaves it essentially unchanged.
+ *
+ * Non-Cloudinary URLs (the local-disk dev fallback) are returned untouched.
+ *
+ * @param {string} url
+ * @returns {string}
+ */
+const toAnalysisUrl = (url) => {
+  if (typeof url !== 'string' || !url.includes('/image/upload/')) return url;
+  // c_limit only shrinks (never upscales); q_auto trims bytes without visibly
+  // shifting colour.
+  return url.replace('/image/upload/', `/image/upload/c_limit,w_${env.aiService.maxImageWidth},q_auto/`);
+};
+
+module.exports = { uploadImages, uploadBuffer, uploadDocuments, toAnalysisUrl };
