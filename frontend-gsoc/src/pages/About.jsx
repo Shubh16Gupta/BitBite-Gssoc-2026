@@ -63,9 +63,9 @@ export default function About() {
   ]
 
   const stats = [
-    { value: '125M+', label: 'Small Farmers', icon: Users },
-    { value: '30+', label: 'Languages Supported', icon: Globe },
-    { value: '50+', label: 'Bank Partners', icon: Building },
+    { value: '40+', label: 'Small Farmers', icon: Users },
+    { value: '2+', label: 'Languages Supported', icon: Globe },
+    { value: '10+', label: 'Bank Partners', icon: Building },
     { value: '95%', label: 'Approval Rate', icon: TrendingUp }
   ]
 
@@ -403,7 +403,7 @@ export default function About() {
                 </p>
                 <div className="mt-4 flex items-center justify-center gap-2">
                   <span className="px-4 py-1 bg-white/20 rounded-full text-emerald-100 text-sm font-medium">
-                    IDEATHON 2026
+                    SOCF 2.0 2026
                   </span>
                   <span className="px-4 py-1 bg-white/20 rounded-full text-emerald-100 text-sm font-medium">
                     Team 8Bit-Bite

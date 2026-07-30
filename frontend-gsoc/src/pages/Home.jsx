@@ -204,7 +204,7 @@ const stats = [
   { value: "10+", label: "Farmers Addressed", icon: Users, delay: 0 },
   { value: "5x", label: "Faster Processing", icon: Clock, delay: 0.1 },
   { value: "95%", label: "Accuracy Rate", icon: TrendingUp, delay: 0.2 },
-  { value: "30+", label: "Languages Supported", icon: Globe, delay: 0.3 },
+  { value: "2+", label: "Languages Supported", icon: Globe, delay: 0.3 },
   { value: "24x7", label: "AI Support", icon: Headphones, delay: 0.4 },
 ];
 
