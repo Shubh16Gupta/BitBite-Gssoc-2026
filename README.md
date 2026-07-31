@@ -1,351 +1,205 @@
-# 🌾 AnnData - Credit that grows with the farmer
+# 🌾 AnnData — Credit that grows with the farmer
 
-[![React](https://img.shields.io/badge/React-18.2.0-61DAFB?style=flat&logo=react&logoColor=61DAFB)](https://reactjs.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4.0-06B6D4?style=flat&logo=tailwind-css&logoColor=06B6D4)](https://tailwindcss.com/)
-[![Framer Motion](https://img.shields.io/badge/Framer_Motion-10.16.0-0055FF?style=flat&logo=framer&logoColor=0055FF)](https://www.framer.com/motion/)
-[![Vite](https://img.shields.io/badge/Vite-5.0.0-646CFF?style=flat&logo=vite&logoColor=646CFF)](https://vitejs.dev/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![React](https://img.shields.io/badge/React-18.2-61DAFB?style=flat&logo=react&logoColor=61DAFB)](https://reactjs.org/)
+[![Vite](https://img.shields.io/badge/Vite-5.0-646CFF?style=flat&logo=vite&logoColor=646CFF)](https://vitejs.dev/)
+[![Node](https://img.shields.io/badge/Node-18+-339933?style=flat&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express-4-000000?style=flat&logo=express&logoColor=white)](https://expressjs.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=flat&logo=mongodb&logoColor=white)](https://mongodb.com/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 
-> **AI-powered agri-fintech platform that scores, monitors, and documents farm loans — turning a farmer's spoken words into a sanction-ready file.**
+> **AI-powered agri-fintech platform that scores, monitors, and documents farm credit — turning field photos into a lending decision.**
+
+**Live demo:** [bit-bite-gssoc-2026.vercel.app](https://bit-bite-gssoc-2026.vercel.app)
+
+---
 
 ## 📌 Overview
 
-**AnnData** (Ann = Grain + Data) is an AI-powered agricultural fintech platform designed to bridge the gap between small farmers and institutional credit. Built for India's 125+ million small and marginal farmers, the platform provides alternative credit scoring, AI-driven crop health monitoring, and automated loan documentation.
+**AnnData** (Ann = Grain + Data) bridges the gap between small farmers and
+institutional credit. A farmer photographs their crop; a vision service scores its
+health; that score is blended with local weather into an **AnnScore** that banks
+and insurers can underwrite against — no CIBIL history required.
 
-### 🎯 The Problem We Solve
+### 🎯 The problem
 
 - **86%** of India's farmers are small & marginal (<2 ha)
-- Only **14-27%** access formal institutional credit
+- Only **14–27%** access formal institutional credit
 - **28%** of farm credit comes from informal lenders at exploitative rates
-- Farmers lack CIBIL scores, making them invisible to banks
+- Farmers lack credit scores, making them invisible to banks
 
-### 💡 Our Solution
+### 💡 The approach
 
-AnnData sits inside the bank and does the heavy lifting. The farmer just speaks; the backend fetches data, builds the score, and prepares every document.
+Creditworthiness is derived from evidence the farmer already has — their land and
+their crop — rather than from a financial history they were never able to build.
 
-## ✨ Features
-
-### 🚜 For Farmers
-- **Voice-First Interface** - Speak in your native language, no paperwork
-- **AI Crop Health Detection** - Upload crop photos for instant health scores
-- **AnnScore** - Alternative credit scoring without traditional CIBIL
-- **Government Schemes** - Discover and apply for relevant government programs
-- **Auto Documentation** - Sanction-ready loan files generated in minutes
-
-### 🏦 For Banks
-- **AI-Powered Credit Scoring** - Alternative scoring for farmers outside traditional systems
-- **Real-time Monitoring** - Track crop health and farmer performance
-- **Early Warning System** - Identify potential defaults before they happen
-- **Priority Sector Lending** - Ready pipeline for priority sector targets
-- **Document Automation** - Complete loan dossiers generated automatically
-
-### 🛡️ For Admin
-- **Bank Management** - Review and approve bank registrations
-- **User Management** - Manage all platform users
-- **Platform Analytics** - Track platform performance and impact metrics
+---
 
 ## 🏗️ Architecture
 
-### Frontend Stack
+Three deployable services in one repository:
+
 ```
-├── React 18.2.0         → UI Library
-├── Vite 5.0.0           → Build Tool
-├── Tailwind CSS 3.4.0   → Styling
-├── Framer Motion 10.16  → Animations
-├── React Router v6      → Navigation
-├── React Hook Form      → Form Management
-├── Zod                  → Schema Validation
-├── Lucide React         → Icons
-└── Axios                → API Client
+┌─────────────────┐   HTTPS    ┌──────────────────┐   POST /analyze   ┌──────────────┐
+│  frontend-gsoc  │──────────▶ │     backend      │──────────────────▶│  ml-service  │
+│  React + Vite   │            │ Express + Mongo  │◀──────────────────│   FastAPI    │
+│    (Vercel)     │            │     (Render)     │  cropHealthScore  │   (Render)   │
+└─────────────────┘            └──────────────────┘                   └──────────────┘
+                                   │         │
+                          MongoDB Atlas   Cloudinary
+                                            + Open-Meteo, Agmarknet
 ```
 
-### Backend Stack (Coming Soon)
-```
-├── Node.js / Express    → API Server
-├── Python / FastAPI     → ML Services
-├── PostgreSQL          → Database
-├── Redis              → Caching
-└── AWS S3             → File Storage
-```
+| Service | Stack | Responsibility |
+|---|---|---|
+| [`frontend-gsoc/`](frontend-gsoc/README.md) | React 18, Vite, Tailwind, React Router | Four portals — farmer, bank, insurer, admin |
+| [`backend/`](backend/README.md) | Express 4, Mongoose 8, JWT | Auth, crop pipeline, scoring, lending & insurance |
+| [`ml-service/`](ml-service/README.md) | FastAPI, Pillow, NumPy | Crop-health score from field photos |
 
-### AI/ML Stack
-```
-├── Transfer Learning    → EfficientNet/ResNet
-├── Claude API          → NLP & Document Drafting
-├── Bhashini/Whisper   → Speech-to-Text
-└── PyTorch            → Model Training
-```
+Each folder has its own README with setup, environment variables, and deployment notes.
 
-## 🚀 Quick Start
+---
 
-### Prerequisites
-- Node.js 16+ (Recommended: Node 20 LTS)
-- npm 8+ or yarn 1.22+
+## 🌱 How the AnnScore works
 
-### Installation
+A crop cycle is one sowing, split into **4 growth phases** from a 12-crop catalog.
+Each phase the farmer uploads 3–5 photos, and the backend runs:
+
+1. **Anti-fraud screening** — SHA-256 dedupe across all farmers, EXIF GPS checked
+   against the field's coordinates, EXIF timestamp checked against the sowing date
+2. **Upload** to Cloudinary
+3. **Crop health** — the ML service samples random patches per image and scores each
+   with **VARI** (Visible Atmospherically Resistant Index): `(G − R) / (G + R − B)`.
+   Green, chlorophyll-rich canopy scores high; yellowing, wilting, or bare soil scores low
+4. **Near-duplicate detection** across farmers via perceptual hashing
+5. **Weather + rainfall** for the field's GPS (Open-Meteo, with fallback provider)
+6. **AnnScore** = `0.8 × cropHealth + 0.2 × weatherScore` (weight configurable)
+7. **Yield prediction** — a transparent rule-based engine over public agronomic averages
+8. **Market price** from the Agmarknet mandi feed → estimated revenue
+9. **Report** with plain-language recommendations
+
+Banks see a farmer's averaged AnnScore plus a full explanation of *why* it was
+awarded. Insurers price premiums off the same number — better crop health and
+consistent monitoring lower the rate.
+
+---
+
+## ✨ What's built
+
+**Farmer** — OTP login (no password), field mapping with GPS, 4-phase crop analysis,
+per-field analytics, insurance quotes and applications, loan applications, document
+upload with verification badges, English/Hindi UI.
+
+**Bank** — registration with admin approval, configurable minimum-AnnScore threshold,
+eligible-farmer list, per-farmer score breakdown, loan approve/reject.
+
+**Insurer** — registration with admin approval, risk-priced application queue,
+crop reports visible only for farmers whose applications they've approved.
+
+**Admin** — approve or reject bank and insurer registrations.
+
+---
+
+## 🚀 Quick start
+
+**Prerequisites:** Node ≥ 18, Python ≥ 3.10, MongoDB (local or Atlas).
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/anndata.git
-cd anndata/frontend
-
-# Install dependencies
-npm install
-
-# Set up environment variables
-cp .env.example .env.local
-
-# Start development server
-npm run dev
+git clone https://github.com/Shubh16Gupta/BitBite-Gssoc-2026.git
+cd BitBite-Gssoc-2026
 ```
 
-### Environment Variables
-
-```env
-# .env.local
-VITE_API_URL=http://localhost:5000/api
-VITE_CLAUDE_API_KEY=your_claude_api_key
-VITE_AGMARKNET_API_KEY=your_agmarknet_api_key
-VITE_USE_MOCK_DATA=true  # Set to false when backend is ready
-```
-
-### Available Scripts
+**1. Backend** — runs on :5050 (the frontend dev proxy expects that port)
 
 ```bash
-npm run dev         # Start development server
-npm run build       # Build for production
-npm run preview     # Preview production build
-npm run lint        # Run ESLint
+cd backend && npm install && cp .env.example .env
+# fill in MONGO_URI and JWT_SECRET, then:
+PORT=5050 npm run dev
 ```
 
-## 📁 Project Structure
+**2. ML service** (optional — the backend falls back to a mocked score without it)
 
-```
-frontend/
-├── src/
-│   ├── assets/              # Images, fonts, and static assets
-│   ├── components/
-│   │   ├── admin/          # Admin components
-│   │   ├── auth/           # Authentication components
-│   │   ├── bank/           # Bank dashboard components
-│   │   ├── common/         # Reusable components
-│   │   ├── farmer/         # Farmer dashboard components
-│   │   └── layout/         # Layout components
-│   ├── context/            # React context providers
-│   ├── hooks/              # Custom React hooks
-│   ├── pages/              # Page components
-│   ├── services/           # API services
-│   ├── utils/              # Utility functions
-│   ├── App.jsx            # Main App component
-│   ├── main.jsx           # Entry point
-│   └── index.css          # Global styles
-├── public/                 # Public assets
-├── .env.example           # Environment variables template
-├── index.html             # HTML template
-├── package.json           # Dependencies
-├── tailwind.config.js    # Tailwind configuration
-├── vite.config.js        # Vite configuration
-└── README.md             # Project documentation
+```bash
+cd ml-service && python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --port 8000
+# then set AI_SERVICE_URL=http://localhost:8000 in backend/.env
 ```
 
-## 🎨 Design System
+**3. Frontend**
 
-### Color Palette
-```css
-Primary:    Emerald (green)    → #10b981
-Secondary:  Slate (gray)       → #64748b
-Accent:     Cyan               → #06b6d4
-Background: White              → #ffffff
-Text:       Dark Slate         → #0f172a
+```bash
+cd frontend-gsoc && npm install && npm run dev
 ```
 
-### UI/UX Principles
-- ✨ **Glassmorphism** - Modern, premium feel
-- 🎯 **Accessibility** - WCAG 2.1 compliant
-- 📱 **Responsive** - Mobile-first design
-- ⚡ **Performance** - Optimized for Indian network conditions
-- 🗣️ **Voice-First** - Designed for voice interaction
+Open http://localhost:5173 and sign in with any valid 10-digit Indian mobile number
+— with no SMS gateway configured the OTP is returned on screen and auto-filled.
 
-## 🔐 Demo Credentials
+**Admin access** requires seeding, since there is no admin signup endpoint:
 
-| Role | Identifier | Password | IFSC | Dashboard |
-|------|-----------|----------|------|-----------|
-| Farmer | 9876543210 (phone) or farmer@example.com | farmer123 | - | /farmer |
-| Bank | bank@hdfc.com | bank123 | HDFC0001234 | /bank |
-| Admin | admin@anndata.in | admin123 | - | /admin |
+```bash
+cd backend && SEED_ADMIN_EMAIL="admin@farmtrust.in" SEED_ADMIN_PASSWORD="Admin@12345" npm run seed:admin
+```
 
-## 🌟 Key Features Breakdown
+---
 
-### 1. KrishiScore Engine
-- Land records verification
-- AI crop-health scoring
-- Mandi sale records
-- Sustainability verification
+## 🔐 Security
 
-### 2. Monitoring Engine
-- Monthly crop photo analysis
-- Live mandi price integration
-- Repayment-ability signals
-- Government scheme matching
+- **Aadhaar is never stored in plaintext** — only a SHA-256 hash for duplicate
+  detection plus a masked display value (`XXXXXXXX1234`)
+- Passwords and OTPs are bcrypt-hashed; OTPs expire, lock out after 5 attempts, and
+  are single-use
+- Every farmer query is scoped by owner, so one farmer cannot read another's records
+- helmet, rate limiting, NoSQL-injection sanitising, and a CORS allowlist
+- Photo forensics reject reused, relocated, or back-dated images before they can
+  influence a lending score
 
-### 3. Document Generation
-- Automatic loan file creation
-- Multi-language support
-- Digital signing (Aadhaar eSign)
-- PDF generation with audit trail
+> **Demo-mode caveat:** with no SMS gateway configured, the OTP is returned in the
+> API response so the login flow is demonstrable without an SMS account. That is a
+> demo affordance, not a production auth flow — set a gateway key to disable it.
 
-## 📊 Impact Metrics
+---
 
-- **125M+** small-farm households addressed
-- **Days → Hours** loan origination time
-- **30+** languages supported
-- **95%** AI accuracy rate
-- **24x7** AI support
+## 🚢 Deployment
 
-## 🛠️ Technologies Used
+| Service | Platform | Notes |
+|---|---|---|
+| Frontend | Vercel | Root directory `frontend-gsoc`; set `VITE_API_URL` **including** `/api` |
+| Backend + ML | Render | `render.yaml` at the repo root deploys both |
+| Database | MongoDB Atlas | Allow `0.0.0.0/0` — managed hosts have no fixed egress IP |
+| Images | Cloudinary | Required in production; local disk is ephemeral |
 
-### Frontend Technologies
-- **React 18** - UI Library with concurrent features
-- **Vite** - Next-generation build tool
-- **Tailwind CSS** - Utility-first CSS framework
-- **Framer Motion** - Production-ready animations
-- **React Router v6** - Declarative routing
-- **React Hook Form** - Performant form handling
-- **Zod** - TypeScript-first schema validation
-- **Axios** - Promise-based HTTP client
-- **Lucide React** - Beautiful icon set
+Free-tier instances sleep after ~15 minutes idle. The backend wakes the ML service
+and retries automatically, and `.github/workflows/keep-alive.yml` can ping both on a
+schedule (leave it off outside demos — it exceeds the free monthly instance-hours).
 
-### Design & Animations
-- **Glassmorphism** - Modern UI design pattern
-- **Apple-inspired** - Premium, minimalist design
-- **Micro-interactions** - Delightful user experiences
-- **Scroll animations** - Content reveals on scroll
-- **Smooth transitions** - Page and component transitions
+---
 
-## 🚧 Roadmap
+## 🗺️ Roadmap
 
-- [x] MVP Frontend Development
-- [x] Authentication & Authorization
-- [x] Farmer Dashboard
-- [x] Bank Dashboard
-- [x] Admin Dashboard
-- [x] Government Schemes Directory
-- [ ] Backend API Integration
-- [ ] AI Model Integration
-- [ ] Voice Interface
-- [ ] Mobile App (React Native)
-- [ ] Payment Gateway Integration
-- [ ] Advanced Analytics Dashboard
+- [x] Farmer, bank, insurer, and admin portals
+- [x] Backend API with crop-cycle pipeline
+- [x] Crop-health ML service and AnnScore
+- [x] Insurance and loan flows
+- [x] Photo anti-fraud (GPS, timestamp, duplicate detection)
+- [ ] Trained crop-health model to replace the vegetation-index scorer
+- [ ] Real SMS OTP delivery (DLT-registered gateway)
+- [ ] Voice-first interface and wider language coverage
+- [ ] Automated loan-document generation and e-sign
+- [ ] Mobile app
 
-## 🤝 Contributing
+The yield engine and health scorer are deliberately isolated behind single
+functions (`predict(input)` and `score(patch)`), so trained models can replace them
+without touching the pipeline.
 
-We welcome contributions! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-### Development Guidelines
-- Use `main` branch for production
-- Create feature branches from `develop`
-- Write meaningful commit messages
-- Follow ESLint rules
-- Test components before submitting PR
-- Update documentation when needed
-
-## 📄 License
-
-This project is proprietary and confidential. All rights reserved.
+---
 
 ## 🙏 Acknowledgments
 
-- **Team 8Bit-Bite** - Hackathon participants
-- **Agriculture Census 2015-16** - Government of India
-- **NABARD** - Rural Financial Inclusion Survey
-- **PlantVillage Dataset** - Open crop disease images
-- **Agmarknet API** - Mandi price data
-- **Account Aggregator** - RBI-regulated framework
+Agriculture Census 2015-16 (Government of India) · NABARD Rural Financial Inclusion
+Survey · Agmarknet mandi price data · Open-Meteo weather API
 
-## 📞 Contact & Support
+## 🏆 Built for
 
-- **Project Link**: [https://github.com/yourusername/anndata](https://github.com/yourusername/anndata)
-- **Demo**: [https://anndata-demo.vercel.app](https://anndata-demo.vercel.app)
-- **Email**: hello@anndata.in
-- **Phone**: +91 98765 43210
+**GSSoC / IDEATHON 2026** — Team 8Bit-Bite
 
-## 🏆 Built For
-
-**IDEATHON 2026** - Team 8Bit-Bite
-
----
-
-<p align="center">
-  <b>AnnData</b> — AI for Better Harvests, Fairer Futures 🌾
-</p>
-
-<p align="center">
-  <i>Building Aatmanirbhar Bharat Through Technology</i>
-</p>
-
----
-
-### 📸 Screenshots
-
-<details>
-<summary>Click to view screenshots</summary>
-
-#### Home Page
-![Home Page](screenshots/home.png)
-
-#### Farmer Dashboard
-![Farmer Dashboard](screenshots/farmer-dashboard.png)
-
-#### Bank Dashboard
-![Bank Dashboard](screenshots/bank-dashboard.png)
-
-#### Admin Dashboard
-![Admin Dashboard](screenshots/admin-dashboard.png)
-
-</details>
-
----
-
-## 🔧 Deployment
-
-### Build for Production
-
-```bash
-npm run build
-```
-
-The build output will be in the `dist/` directory.
-
-### Deploy to Vercel
-
-```bash
-npm install -g vercel
-vercel
-```
-
-### Deploy to Netlify
-
-```bash
-npm install -g netlify-cli
-netlify deploy
-```
-
----
-
-## 📊 Performance Metrics
-
-- **Lighthouse Score**: 95+
-- **First Contentful Paint**: < 1.5s
-- **Time to Interactive**: < 2.5s
-- **Total Blocking Time**: < 200ms
-- **Cumulative Layout Shift**: < 0.1
-
----
-
-**Made with ❤️ by Team 8Bit-Bite**
+<p align="center"><b>AnnData</b> — AI for better harvests, fairer futures 🌾</p>
