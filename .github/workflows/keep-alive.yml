@@ -1,33 +1,63 @@
 # Keeps the free-tier Render services from sleeping.
 #
-# Render spins a free web service down after ~15 minutes without traffic, and
+# Render spins a free web service down after ~15 minutes without traffic and
 # returns 502 from its edge for ~30s while the container boots again. Pinging
-# /health every 10 minutes keeps both instances warm so the first real request
-# of a session is fast.
+# /health keeps both instances warm so the first real request of a session is fast.
 #
-# COST WARNING: a Render account gets 750 free instance-hours per month across
-# all free services. Keeping BOTH services awake 24/7 costs ~1440 hours, which
-# exceeds that and will suspend them partway through the month. So the schedule
-# below is commented out by default — enable it only around a demo, or trigger
-# the workflow manually from the Actions tab when you need things warm.
+# WHY A LOOP RATHER THAN CRON: GitHub's `schedule` trigger is best-effort. Short
+# intervals like */10 are routinely delayed by many minutes or dropped entirely
+# under load, which is more than enough for Render to fall asleep. Instead, one
+# manual run holds a job open and pings on a fixed interval — reliable for as
+# long as it runs. The cron below is kept only as a backstop.
+#
+# COST: Actions minutes are free on public repos. Render is the constraint — a
+# free account gets 750 instance-hours/month across all services, and keeping
+# BOTH awake 24/7 costs ~1440. Run this around demos, not permanently.
 name: Keep Render services awake
 
 on:
-  workflow_dispatch: # Actions tab -> Run workflow (safe, costs nothing when idle)
-  # ENABLED FOR THE DEMO. Comment this block out again afterwards — leaving it
-  # on permanently costs ~1440 instance-hours/month against a 750-hour free
-  # allowance and will get both services suspended mid-month.
+  workflow_dispatch:
+    inputs:
+      duration_minutes:
+        description: 'How long to keep pinging (max 350; GitHub kills jobs at 6h)'
+        required: false
+        default: '300'
+  # Backstop only — do not rely on this firing on time.
   schedule:
     - cron: '*/10 * * * *'
+
+# A newer run replaces an older one rather than stacking pings.
+concurrency:
+  group: keep-alive
+  cancel-in-progress: true
 
 jobs:
   ping:
     runs-on: ubuntu-latest
+    # Hard ceiling so a stuck job can never burn Render hours indefinitely.
+    timeout-minutes: 355
     steps:
-      - name: Ping ML service
+      - name: Ping both services
+        env:
+          ML: https://anndata-ml.onrender.com/health
+          API: https://anndata-api.onrender.com/health
         run: |
-          curl -sS -m 120 -o /dev/null -w 'ml %{http_code} in %{time_total}s\n' https://anndata-ml.onrender.com/health
+          set -u
+          # Scheduled runs have no inputs, so fall back to a single pass.
+          MINUTES="${{ github.event.inputs.duration_minutes || '0' }}"
+          INTERVAL=300   # 5 min — comfortably inside Render's ~15 min idle window
+          END=$(( $(date +%s) + MINUTES * 60 ))
 
-      - name: Ping API
-        run: |
-          curl -sS -m 120 -o /dev/null -w 'api %{http_code} in %{time_total}s\n' https://anndata-api.onrender.com/health
+          ping_once() {
+            for target in "$ML" "$API"; do
+              curl -sS -m 120 -o /dev/null \
+                -w "$(date -u +%H:%M:%S)  %{http_code}  %{time_total}s  $target\n" \
+                "$target" || echo "$(date -u +%H:%M:%S)  FAILED  $target"
+            done
+          }
+
+          ping_once
+          while [ "$(date +%s)" -lt "$END" ]; do
+            sleep "$INTERVAL"
+            ping_once
+          done
