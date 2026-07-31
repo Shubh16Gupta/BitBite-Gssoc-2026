@@ -22,9 +22,6 @@ on:
         description: 'How long to keep pinging (max 350; GitHub kills jobs at 6h)'
         required: false
         default: '300'
-  # Backstop only — do not rely on this firing on time.
-  schedule:
-    - cron: '*/10 * * * *'
 
 # A newer run replaces an older one rather than stacking pings.
 concurrency:
